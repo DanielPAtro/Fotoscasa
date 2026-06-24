@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Porta-Retrato Digital</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .slideshow-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1.8s ease-in-out;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .slide.active {
+            opacity: 1;
+        }
+
+        /* Widget no Canto Inferior Esquerdo */
+        .home-widget {
+            position: absolute;
+            bottom: 6vw;
+            left: 6vw;
+            z-index: 10;
+            color: white;
+            text-shadow: 0px 2px 15px rgba(0, 0, 0, 0.9), 0px 4px 30px rgba(0, 0, 0, 0.5);
+            pointer-events: none; 
+        }
+
+        .time {
+            font-size: 8vw;
+            font-weight: 300;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .date {
+            font-size: 2.2vw;
+            margin-top: 8px;
+            font-weight: 400;
+            opacity: 0.95;
+            text-transform: capitalize;
+        }
+
+        @media (orientation: portrait) {
+            .time { font-size: 14vw; }
+            .date { font-size: 4vw; }
+            .home-widget { bottom: 8vh; left: 8vw; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="slideshow-container" id="slideshow">
+        <div class="slide active" style="background-image: url('foto1.jpg');"></div>
+        <div class="slide" style="background-image: url('foto2.jpg');"></div>
+        <div class="slide" style="background-image: url('foto3.jpg');"></div>
+        </div>
+
+    <div class="home-widget">
+        <div class="time" id="clock">00:00</div>
+        <div class="date" id="cal-date">Carregando...</div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO ---
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+        const slideIntervalTime = 8000; // Tempo de cada foto (8 segundos)
+        let slideInterval;
+
+        function showSlide(index) {
+            if(slides.length === 0) return;
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (index + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+
+        function startSlideshow() {
+            clearInterval(slideInterval);
+            if(slides.length > 1) {
+                slideInterval = setInterval(() => { showSlide(currentSlide + 1); }, slideIntervalTime);
+            }
+        }
+
+        // --- TOQUES NA TELA DO TABLET ---
+        document.getElementById('slideshow').addEventListener('click', (e) => {
+            const screenWidth = window.innerWidth;
+            if (e.clientX > screenWidth * 0.7) {
+                showSlide(currentSlide + 1); startSlideshow();
+            } else if (e.clientX < screenWidth * 0.3) {
+                showSlide(currentSlide - 1); startSlideshow();
+            } else {
+                if (slideInterval) { clearInterval(slideInterval); slideInterval = null; } 
+                else { startSlideshow(); }
+            }
+        });
+
+        // --- RELÓGIO ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            document.getElementById('cal-date').textContent = now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
+
+        // --- EVITAR QUE A TELA APAGUE ---
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (err) {}
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+        startSlideshow();
+        requestWakeLock();
+        document.addEventListener('visibilitychange', () => { if (wakeLock !== null && document.visibilityState === 'visible') requestWakeLock(); });
+    </script>
+</body>
+</html>
